@@ -27,12 +27,23 @@ def client(tmp_path):
         secret_key="test-secret-key-for-sitneat-course-demo",
         database_url=f"sqlite:///{database.as_posix()}",
         access_token_expire_minutes=60,
-        frontend_origin="http://localhost:5173",
+        frontend_origin="https://2220229-s06-seatneat.vercel.app/",
         seed_demo=True,
     )
     application = create_app(settings)
     with TestClient(application, raise_server_exceptions=False) as test_client:
         yield test_client
+
+
+def test_api_docs_are_served_under_the_api_prefix(client: TestClient):
+    docs = client.get("/api/docs")
+    assert docs.status_code == 200
+    assert "swagger" in docs.text.lower()
+    trailed = client.get("/api/docs/", follow_redirects=False)
+    assert trailed.status_code in {307, 308}
+    spec = client.get("/api/openapi.json")
+    assert spec.status_code == 200
+    assert spec.json()["info"]["title"] == "SitNeat"
 
 
 def future_day(days: int = 2) -> str:

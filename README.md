@@ -33,7 +33,7 @@ npm run dev
 
 Open http://localhost:5173. The Vite dev server forwards `/api` to the backend on port 8000.
 
-API docs: http://localhost:8000/docs
+API docs: http://localhost:8000/api/docs
 
 Copy `.env.example` to `.env` if you want to change the secret, database path, token lifetime, or frontend origin. The app runs with the defaults when no `.env` file is present.
 

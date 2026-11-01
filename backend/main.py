@@ -61,6 +61,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title="SitNeat",
         version="1.0.0",
         summary="Restaurant seat reservation and management",
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+        openapi_url="/api/openapi.json",
     )
     app.state.engine = engine
     app.state.settings = settings
