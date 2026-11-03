@@ -5,14 +5,14 @@ SitNeat is a seat reservation system for one restaurant. A customer registers, l
 The browser is a React application written in TypeScript. It talks to a FastAPI backend through JSON REST calls under /api/v1. SQLite stores the data. A logged-in user sends a JWT access token. The backend decides what that user may do from the role stored in the database. The React pages hide buttons for a nicer screen, but the backend is the real security checkBeta .
 # Features
 # MVP (demo before mid-term):
--Create, list, view, update, complete and delete tasks through a REST API (/api/v1/tasks)
--Input validation with clear error responses
--Interactive API docs at /api/docs
+-Create, list, view, update, complete and delete tasks through a REST API (/api/v1/tasks).
+-Input validation with clear error responses.
+-Interactive API docs at /api/docs.
 
 # Beta (demo before final):
--Sign up, log in, log out (JWT access token + refresh token cookie)
--Personal tasks: each user sees only their own
--Profile page: change your name and password
+-Sign up, log in, log out (JWT access token + refresh token cookie).
+-Personal tasks: each user sees only their own.
+-Profile page: change your name and password.
 -Group tasks: create a group, add members, share and assign tasks.
 -Roles: user and admin; admin dashboard with stats, ban / unban users.
 -Security: Argon2 password hashing, login lockout, secure cookies, security headers
