@@ -101,3 +101,4 @@ In the Vercel project settings, add these environment variables for Production a
 Leave `VITE_API_BASE` unset. The site calls `/api/v1` on the same address, and routes such as `/login` and `/book` fall back to the React app.
 
 Local `fastapi dev` still uses `backend/sitneat.db` until `DATABASE_URL` is set. A Postgres URL is used as given.
+-----------------------------------------------------------------------------------------------------------------------------------------
