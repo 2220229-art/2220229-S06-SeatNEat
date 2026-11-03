@@ -1,13 +1,31 @@
 # SitNeat
 
-SitNeat is a restaurant seat reservation and management system for one restaurant.
+SitNeat is a seat reservation system for one restaurant. A customer registers, logs in, searches for a free seat, and books a time. The customer also chooses vegetarian or non-vegetarian food and declares any allergies. Staff see today’s bookings and move them from confirmed to seated to completed. The manager manages seats, staff accounts, opening hours, and a simple summary.
 
-Customers register, log in, check which seats are free, and reserve a seat for a date and time. They choose vegetarian or non-vegetarian food and record any allergies. Restaurant staff see today’s bookings and update their status. The manager manages seats, staff accounts, opening hours, and booking rules.
+The browser is a React application written in TypeScript. It talks to a FastAPI backend through JSON REST calls under /api/v1. SQLite stores the data. A logged-in user sends a JWT access token. The backend decides what that user may do from the role stored in the database. The React pages hide buttons for a nicer screen, but the backend is the real security checkBeta .
+# Features
+# MVP (demo before mid-term):
+-Create, list, view, update, complete and delete tasks through a REST API (/api/v1/tasks)
+-Input validation with clear error responses
+-Interactive API docs at /api/docs
 
-The frontend is React with TypeScript. The backend is FastAPI. They talk through JSON REST APIs under `/api/v1`. SQLite stores the data in `backend/sitneat.db`. Logged-in users send a JWT access token. The backend checks the user’s role and security scopes before every protected action.
+# Beta (demo before final):
+-Sign up, log in, log out (JWT access token + refresh token cookie)
+-Personal tasks: each user sees only their own
+-Profile page: change your name and password
+-Group tasks: create a group, add members, share and assign tasks.
+-Roles: user and admin; admin dashboard with stats, ban / unban users.
+-Security: Argon2 password hashing, login lockout, secure cookies, security headers
+# Tech stack:
+PART        CHOICE
+Backend     Python 3.10+, FastAPI, SQLModel
+Database    Supabase PostgreSQL (production), SQLite (local)
+Frontend    React + TypeScript + Vite
+Hosting     Vercel (frontend and backend in one project)
+Beta extras Alembic (migrations), PyJWT, pwdlib (Argon2)
+
 
 ## Requirements
-
 - Python 3.10+
 - Node.js 22+
 
