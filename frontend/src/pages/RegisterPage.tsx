@@ -4,7 +4,7 @@ import { api, errorText } from "../api"
 import { useAuth } from "../auth"
 
 export function RegisterPage() {
-  const { user } = useAuth()
+  const { user, ready } = useAuth()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -13,6 +13,7 @@ export function RegisterPage() {
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
 
+  if (!ready) return <p className="muted">Loading…</p>
   if (user) return <Navigate to="/" replace />
 
   async function onSubmit(event: FormEvent) {

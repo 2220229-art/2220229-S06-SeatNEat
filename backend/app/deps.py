@@ -42,7 +42,7 @@ def get_current_user(
     except (jwt.PyJWTError, KeyError, TypeError, ValueError):
         raise AppError(401, "UNAUTHORIZED", "Please log in to continue.")
     user = session.get(User, user_id)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or user.banned_at is not None:
         raise AppError(401, "UNAUTHORIZED", "Please log in to continue.")
     allowed = SCOPES.get(user.role, set())
     if any(scope not in allowed for scope in security_scopes.scopes):

@@ -47,3 +47,28 @@ def make_engine(url: str):
 
 def create_tables(engine) -> None:
     SQLModel.metadata.create_all(engine)
+    # create_all does not add columns to a database that already exists.
+    statements = (
+        "ALTER TABLE users ADD COLUMN account_role VARCHAR DEFAULT 'user'",
+        "ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN locked_until TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN banned_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN ban_reason VARCHAR",
+        "ALTER TABLE audit_logs ADD COLUMN ip_address VARCHAR",
+        "ALTER TABLE audit_logs ADD COLUMN user_agent VARCHAR",
+        "ALTER TABLE audit_logs ADD COLUMN detail VARCHAR",
+        "ALTER TABLE reservations ADD COLUMN group_id INTEGER",
+    )
+    with engine.begin() as connection:
+        for sql in statements:
+            try:
+                connection.exec_driver_sql(sql)
+            except Exception:
+                pass
+        try:
+            connection.exec_driver_sql(
+                "UPDATE users SET account_role = 'admin' "
+                "WHERE role = 'manager' AND (account_role IS NULL OR account_role = 'user')"
+            )
+        except Exception:
+            pass

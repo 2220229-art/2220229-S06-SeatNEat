@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { Navigate } from "react-router-dom"
-import { api, setUnauthorizedHandler } from "./api"
+import { api, setTokenHandler, setUnauthorizedHandler } from "./api"
 import type { LoginResult, Role, User } from "./types"
 
 const TOKEN_KEY = "sitneat_token"
@@ -11,7 +11,7 @@ type AuthValue = {
   token: string | null
   ready: boolean
   login: (email: string, password: string) => Promise<User>
-  logout: () => void
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthValue | null>(null)
@@ -33,10 +33,9 @@ function clearSaved() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const saved = loadSaved()
-  const [token, setToken] = useState<string | null>(saved?.token ?? null)
-  const [user, setUser] = useState<User | null>(saved?.user ?? null)
-  const [ready, setReady] = useState(saved === null)
+  const [token, setToken] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
@@ -44,19 +43,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null)
       setUser(null)
     })
+    setTokenHandler((nextToken, nextUser) => {
+      sessionStorage.setItem(TOKEN_KEY, nextToken)
+      sessionStorage.setItem(USER_KEY, JSON.stringify(nextUser))
+      setToken(nextToken)
+      setUser(nextUser)
+    })
   }, [])
 
   useEffect(() => {
-    if (!token) {
-      setReady(true)
-      return
-    }
     let cancelled = false
-    api<User>("/auth/me", {}, token)
-      .then((fresh) => {
+    const saved = loadSaved()
+    const restore = saved
+      ? api<User>("/auth/me", {}, saved.token).then((fresh) => ({ token: saved.token, user: fresh }))
+      : api<LoginResult>("/auth/refresh", { method: "POST" }).then((result) => ({
+          token: result.access_token,
+          user: result.user,
+        }))
+    restore
+      .then((result) => {
         if (cancelled) return
-        setUser(fresh)
-        sessionStorage.setItem(USER_KEY, JSON.stringify(fresh))
+        sessionStorage.setItem(TOKEN_KEY, result.token)
+        sessionStorage.setItem(USER_KEY, JSON.stringify(result.user))
+        setToken(result.token)
+        setUser(result.user)
       })
       .catch(() => {
         if (cancelled) return
@@ -70,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [])
 
   async function login(email: string, password: string) {
     const result = await api<LoginResult>("/auth/login", {
@@ -85,7 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result.user
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await api("/auth/logout", { method: "POST" }, token, false)
+    } catch {
+      // The local session still ends if the server is unreachable.
+    }
     clearSaved()
     setToken(null)
     setUser(null)

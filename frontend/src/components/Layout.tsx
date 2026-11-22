@@ -3,7 +3,7 @@ import { useAuth } from "../auth"
 import { roleLabel } from "../format"
 
 export function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, ready } = useAuth()
 
   return (
     <>
@@ -12,7 +12,7 @@ export function Layout() {
           SitNeat <span>Reservations</span>
         </Link>
         <nav>
-          {!user && (
+          {ready && !user && (
             <>
               <NavLink to="/login">Log in</NavLink>
               <NavLink to="/register">Register</NavLink>
@@ -26,9 +26,11 @@ export function Layout() {
           )}
           {user?.role === "staff" && <NavLink to="/today">Today</NavLink>}
           {user?.role === "manager" && <NavLink to="/manage">Dashboard</NavLink>}
+          {user?.account_role === "admin" && <NavLink to="/admin">Admin</NavLink>}
+          {user && <NavLink to="/groups">Groups</NavLink>}
           {user && <NavLink to="/profile">Profile</NavLink>}
           {user && (
-            <button type="button" className="secondary" onClick={logout}>
+            <button type="button" className="secondary" onClick={() => void logout()}>
               Log out
             </button>
           )}

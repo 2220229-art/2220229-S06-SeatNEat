@@ -48,6 +48,7 @@ class UserPublic(BaseModel):
     full_name: str
     email: str
     role: Role
+    account_role: str = "user"
     is_active: bool
 
 
@@ -124,6 +125,7 @@ class AvailabilitySeat(BaseModel):
 
 class ReservationBody(BaseModel):
     seat_id: int = Field(ge=1)
+    group_id: int | None = Field(default=None, ge=1)
     date: date
     start_time: time
     party_size: int = Field(ge=1, le=20)
@@ -158,6 +160,7 @@ class ReservationRead(BaseModel):
     allergy_declaration: AllergyDeclaration
     allergy_details: str | None
     status: ReservationStatus
+    group_id: int | None = None
 
 
 class StatusUpdate(BaseModel):

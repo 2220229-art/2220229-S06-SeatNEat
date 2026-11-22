@@ -4,7 +4,7 @@ import { errorText } from "../api"
 import { homePath, useAuth } from "../auth"
 
 export function LoginPage() {
-  const { user, login } = useAuth()
+  const { user, login, ready } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const created = (location.state as { message?: string } | null)?.message ?? ""
@@ -13,6 +13,7 @@ export function LoginPage() {
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
 
+  if (!ready) return <p className="muted">Loading…</p>
   if (user) return <Navigate to={homePath(user.role)} replace />
 
   async function submit(nextEmail: string, nextPassword: string) {

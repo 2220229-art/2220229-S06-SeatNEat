@@ -9,10 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.config import DEV_SECRET, Settings, allowed_origins, load_settings
+from app.config import DEV_PEPPER, DEV_SECRET, Settings, allowed_origins, load_settings
 from app.database import create_tables, make_engine
 from app.errors import AppError
-from app.routers import auth, reports, reservations, seats, staff
+from app.routers import admin, auth, groups, reports, reservations, seats, staff
 from app.routers import settings as settings_router
 from app.seed import seed_database
 
@@ -51,6 +51,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings = load_settings()
     if settings.app_env == "production" and settings.secret_key in {"", DEV_SECRET}:
         raise RuntimeError("Set SECRET_KEY in the environment before running in production.")
+    if settings.app_env == "production" and settings.password_pepper in {"", DEV_PEPPER}:
+        raise RuntimeError("Set PASSWORD_PEPPER in the environment before running in production.")
+    os.environ["PASSWORD_PEPPER"] = settings.password_pepper
 
     logging.basicConfig(level=logging.INFO)
     engine = make_engine(settings.database_url)
@@ -121,6 +124,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(groups.router, prefix="/api/v1")
+    app.include_router(admin.router, prefix="/api/v1")
     app.include_router(seats.router, prefix="/api/v1")
     app.include_router(reservations.router, prefix="/api/v1")
     app.include_router(staff.router, prefix="/api/v1")

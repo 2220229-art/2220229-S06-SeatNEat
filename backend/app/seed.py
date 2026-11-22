@@ -5,9 +5,9 @@ from zoneinfo import ZoneInfo
 from sqlmodel import Session, select
 
 from app.config import Settings
-from app.models import RestaurantSettings, Role, Seat, User
+from app.models import AccountRole, DiningGroup, GroupMember, Reservation, RestaurantSettings, Role, Seat, User
 from app.schemas import ReservationBody
-from app.security import hash_password
+from app.security import hash_password, password_hasher, verify_password
 from app.services import create_reservation
 
 logger = logging.getLogger("sitneat")
@@ -18,6 +18,11 @@ DEMO_STAFF_EMAIL = "staff@sitneat.com"
 DEMO_STAFF_PASSWORD = "Staff123!"
 DEMO_CUSTOMER_EMAIL = "customer@sitneat.com"
 DEMO_CUSTOMER_PASSWORD = "Customer123!"
+DEMO_ADMIN_EMAIL = "arafat.admin@sitneat.com"
+DEMO_ADMIN_PASSWORD = "Admin123!"
+DEMO_GUEST_EMAIL = "rifat.guest@sitneat.com"
+DEMO_GUEST_PASSWORD = "Guest123!"
+DEMO_GROUP_NAME = "Window party"
 
 DEFAULT_SETTINGS = {
     "open_time": "11:00",
@@ -51,6 +56,80 @@ def _first_bookable(row: RestaurantSettings) -> tuple[datetime, time] | None:
     return None
 
 
+def _ensure_account(
+    session: Session,
+    full_name: str,
+    email: str,
+    password: str,
+    role: str,
+    account_role: str,
+) -> User:
+    existing = session.exec(select(User).where(User.email == email)).first()
+    if existing is not None:
+        return existing
+    user = User(
+        full_name=full_name,
+        email=email,
+        password_hash=hash_password(password),
+        role=role,
+        account_role=account_role,
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+def _sync_demo_password(session: Session, email: str, password: str) -> None:
+    user = session.exec(select(User).where(User.email == email)).first()
+    if user is None or verify_password(password, user.password_hash):
+        return
+    try:
+        legacy = password_hasher.verify(password, user.password_hash)
+    except Exception:
+        legacy = False
+    if not legacy:
+        return
+    user.password_hash = hash_password(password)
+    user.failed_attempts = 0
+    user.locked_until = None
+    session.add(user)
+
+
+def _ensure_demo_group(session: Session) -> None:
+    existing = session.exec(select(DiningGroup).where(DiningGroup.name == DEMO_GROUP_NAME)).first()
+    owner = session.exec(select(User).where(User.email == DEMO_CUSTOMER_EMAIL)).first()
+    staff = session.exec(select(User).where(User.email == DEMO_STAFF_EMAIL)).first()
+    guest = session.exec(select(User).where(User.email == DEMO_GUEST_EMAIL)).first()
+    if owner is None or staff is None or guest is None:
+        return
+    if existing is None:
+        existing = DiningGroup(name=DEMO_GROUP_NAME, owner_id=owner.id or 0)
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+    for person, can_create, can_update, can_assign in (
+        (staff, False, True, True),
+        (guest, True, False, False),
+    ):
+        member = session.exec(
+            select(GroupMember).where(
+                GroupMember.group_id == existing.id,
+                GroupMember.user_id == person.id,
+            )
+        ).first()
+        if member is None:
+            session.add(
+                GroupMember(
+                    group_id=existing.id or 0,
+                    user_id=person.id or 0,
+                    can_create=can_create,
+                    can_update=can_update,
+                    can_assign=can_assign,
+                )
+            )
+
+
 def seed_database(engine, settings: Settings) -> None:
     with Session(engine) as session:
         if session.get(RestaurantSettings, 1) is None and session.exec(select(RestaurantSettings)).first() is None:
@@ -58,37 +137,75 @@ def seed_database(engine, settings: Settings) -> None:
             session.commit()
         if not settings.seed_demo:
             return
-        if session.exec(select(User)).first() is not None:
-            return
-        session.add(
-            User(
-                full_name="Nadia Karim",
-                email=DEMO_MANAGER_EMAIL,
-                password_hash=hash_password(DEMO_MANAGER_PASSWORD),
-                role=Role.manager.value,
+        fresh = session.exec(select(User)).first() is None
+        if fresh:
+            session.add(
+                User(
+                    full_name="Nadia Karim",
+                    email=DEMO_MANAGER_EMAIL,
+                    password_hash=hash_password(DEMO_MANAGER_PASSWORD),
+                    role=Role.manager.value,
+                    account_role=AccountRole.admin.value,
+                )
             )
-        )
-        session.add(
-            User(
-                full_name="Rahim Uddin",
-                email=DEMO_STAFF_EMAIL,
-                password_hash=hash_password(DEMO_STAFF_PASSWORD),
-                role=Role.staff.value,
+            session.add(
+                User(
+                    full_name="Rahim Uddin",
+                    email=DEMO_STAFF_EMAIL,
+                    password_hash=hash_password(DEMO_STAFF_PASSWORD),
+                    role=Role.staff.value,
+                    account_role=AccountRole.user.value,
+                )
             )
+            session.add(
+                User(
+                    full_name="Maya Chowdhury",
+                    email=DEMO_CUSTOMER_EMAIL,
+                    password_hash=hash_password(DEMO_CUSTOMER_PASSWORD),
+                    role=Role.customer.value,
+                    account_role=AccountRole.user.value,
+                )
+            )
+            session.add(Seat(seat_number="A1", capacity=2, description="Window table for two"))
+            session.add(Seat(seat_number="A2", capacity=4, description="Family table"))
+            session.add(Seat(seat_number="B1", capacity=6, description="Large table"))
+            session.add(Seat(seat_number="B2", capacity=4, description="Corner booth"))
+            session.commit()
+        _ensure_account(
+            session,
+            "Arafat Hossain",
+            DEMO_ADMIN_EMAIL,
+            DEMO_ADMIN_PASSWORD,
+            Role.manager.value,
+            AccountRole.admin.value,
         )
-        customer = User(
-            full_name="Maya Chowdhury",
-            email=DEMO_CUSTOMER_EMAIL,
-            password_hash=hash_password(DEMO_CUSTOMER_PASSWORD),
-            role=Role.customer.value,
+        _ensure_account(
+            session,
+            "Rifat Ahmed",
+            DEMO_GUEST_EMAIL,
+            DEMO_GUEST_PASSWORD,
+            Role.customer.value,
+            AccountRole.user.value,
         )
-        session.add(customer)
-        session.add(Seat(seat_number="A1", capacity=2, description="Window table for two"))
-        session.add(Seat(seat_number="A2", capacity=4, description="Family table"))
-        session.add(Seat(seat_number="B1", capacity=6, description="Large table"))
-        session.add(Seat(seat_number="B2", capacity=4, description="Corner booth"))
+        for email, account_role in (
+            (DEMO_MANAGER_EMAIL, AccountRole.admin.value),
+            (DEMO_STAFF_EMAIL, AccountRole.user.value),
+            (DEMO_CUSTOMER_EMAIL, AccountRole.user.value),
+        ):
+            existing = session.exec(select(User).where(User.email == email)).first()
+            if existing is not None and existing.account_role != account_role:
+                existing.account_role = account_role
+                session.add(existing)
+        _ensure_demo_group(session)
+        for email, password in (
+            (DEMO_MANAGER_EMAIL, DEMO_MANAGER_PASSWORD),
+            (DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD),
+            (DEMO_STAFF_EMAIL, DEMO_STAFF_PASSWORD),
+            (DEMO_CUSTOMER_EMAIL, DEMO_CUSTOMER_PASSWORD),
+            (DEMO_GUEST_EMAIL, DEMO_GUEST_PASSWORD),
+        ):
+            _sync_demo_password(session, email, password)
         session.commit()
-        session.refresh(customer)
 
     with Session(engine) as session:
         try:
@@ -96,6 +213,9 @@ def seed_database(engine, settings: Settings) -> None:
             customer = session.exec(select(User).where(User.email == DEMO_CUSTOMER_EMAIL)).first()
             seat = session.exec(select(Seat).where(Seat.seat_number == "A1")).first()
             if row is None or customer is None or seat is None:
+                return
+            already = session.exec(select(Reservation).where(Reservation.customer_id == customer.id)).first()
+            if already is not None:
                 return
             slot = _first_bookable(row)
             if slot is None:

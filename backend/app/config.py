@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 DEV_SECRET = "dev-only-sitneat-change-this-secret"
+DEV_PEPPER = "sitneat-local-pepper"
 LOCAL_DATABASE_URL = "sqlite:///./sitneat.db"
 VERCEL_DATABASE_URL = "sqlite:////tmp/sitneat.db"
 
@@ -13,7 +14,9 @@ class Settings:
     app_env: str = "development"
     secret_key: str = DEV_SECRET
     database_url: str = LOCAL_DATABASE_URL
-    access_token_expire_minutes: int = 120
+    access_token_expire_minutes: int = 15
+    password_pepper: str = DEV_PEPPER
+    refresh_token_days: int = 14
     frontend_origin: str = "http://localhost:5173"
     seed_demo: bool = True
 
@@ -95,7 +98,9 @@ def load_settings() -> Settings:
         app_env=resolve_app_env(os.getenv("APP_ENV")),
         secret_key=os.getenv("SECRET_KEY", DEV_SECRET),
         database_url=resolve_database_url(os.getenv("DATABASE_URL")),
-        access_token_expire_minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120")),
+        access_token_expire_minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15")),
+        password_pepper=os.getenv("PASSWORD_PEPPER", DEV_PEPPER),
+        refresh_token_days=int(os.getenv("REFRESH_TOKEN_DAYS", "14")),
         frontend_origin=os.getenv("FRONTEND_ORIGIN", "http://localhost:5173"),
         seed_demo=_as_bool(os.getenv("SEED_DEMO"), True),
     )

@@ -3,11 +3,14 @@ export type Status = "confirmed" | "seated" | "completed" | "cancelled"
 export type FoodPreference = "vegetarian" | "non_vegetarian"
 export type AllergyDeclaration = "none" | "specified"
 
+export type AccountRole = "user" | "admin"
+
 export type User = {
   id: number
   full_name: string
   email: string
   role: Role
+  account_role: AccountRole
   is_active: boolean
 }
 

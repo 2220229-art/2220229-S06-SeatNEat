@@ -1,31 +1,13 @@
 # SitNeat
 
-SitNeat is a seat reservation system for one restaurant. A customer registers, logs in, searches for a free seat, and books a time. The customer also chooses vegetarian or non-vegetarian food and declares any allergies. Staff see today’s bookings and move them from confirmed to seated to completed. The manager manages seats, staff accounts, opening hours, and a simple summary.
+SitNeat is a restaurant seat reservation and management system for one restaurant.
 
-The browser is a React application written in TypeScript. It talks to a FastAPI backend through JSON REST calls under /api/v1. SQLite stores the data. A logged-in user sends a JWT access token. The backend decides what that user may do from the role stored in the database. The React pages hide buttons for a nicer screen, but the backend is the real security checkBeta .
-# Features
-# MVP (demo before mid-term):
--Create, list, view, update, complete and delete tasks through a REST API (/api/v1/tasks).
--Input validation with clear error responses.
--Interactive API docs at /api/docs.
+Customers register, log in, check which seats are free, and reserve a seat for a date and time. They choose vegetarian or non-vegetarian food and record any allergies. Restaurant staff see today’s bookings and update their status. The manager manages seats, staff accounts, opening hours, and booking rules.
 
-# Beta (demo before final):
--Sign up, log in, log out (JWT access token + refresh token cookie).
--Personal tasks: each user sees only their own.
--Profile page: change your name and password.
--Group tasks: create a group, add members, share and assign tasks.
--Roles: user and admin; admin dashboard with stats, ban / unban users.
--Security: Argon2 password hashing, login lockout, secure cookies, security headers
-# Tech stack:
-PART        CHOICE
-Backend     Python 3.10+, FastAPI, SQLModel
-Database    Supabase PostgreSQL (production), SQLite (local)
-Frontend    React + TypeScript + Vite
-Hosting     Vercel (frontend and backend in one project)
-Beta extras Alembic (migrations), PyJWT, pwdlib (Argon2)
-
+The frontend is React with TypeScript. The backend is FastAPI. They talk through JSON REST APIs under `/api/v1`. SQLite stores the data in `backend/sitneat.db` unless `DATABASE_URL` points at Postgres. A signed-in person receives an access token that lasts at most 15 minutes and a refresh token in an httpOnly cookie. The server checks the account role (`user` or `admin`) and the restaurant job before every protected action.
 
 ## Requirements
+
 - Python 3.10+
 - Node.js 22+
 
@@ -57,15 +39,19 @@ Copy `.env.example` to `.env` if you want to change the secret, database path, t
 
 ## Demo accounts
 
-These accounts are created the first time the backend starts.
+These accounts are created when the backend starts and the database does not already contain them. Passwords are not written in this file. They belong in the course submission form and the PDF appendix only.
 
-| Role | Email | Password |
+| Account role | Restaurant job | Email |
 | --- | --- | --- |
-| Customer | customer@sitneat.com | Customer123! |
-| Staff | staff@sitneat.com | Staff123! |
-| Manager | manager@sitneat.com | Manager123! |
+| Admin | Manager | manager@sitneat.com |
+| Admin | Manager | arafat.admin@sitneat.com |
+| User | Staff | staff@sitneat.com |
+| User | Customer | customer@sitneat.com |
+| User | Customer | rifat.guest@sitneat.com |
 
-Public registration always creates a customer. The manager creates staff accounts. A manager account cannot be created from the staff screen.
+`customer@sitneat.com` owns the shared group **Window party**. `staff@sitneat.com` can update a group booking and assign a seat. `rifat.guest@sitneat.com` can create a group booking. Only the owner can rename the group, delete it, or change members.
+
+Public registration always creates a customer with account role `user`. An admin cannot ban another admin or change their own role.
 
 ## Tests
 
@@ -95,10 +81,10 @@ In the Vercel project settings, add these environment variables for Production a
 | --- | --- |
 | `DATABASE_URL` | The Neon **pooled** connection string. The host contains `-pooler`. Reservations stay in Postgres across restarts. |
 | `SECRET_KEY` | A long random string. The API refuses to start in production while this is empty or still the example value. |
+| `PASSWORD_PEPPER` | A second long random string, different from `SECRET_KEY`. Passwords are hashed with this pepper. |
 | `APP_ENV` | `production` |
 | `SEED_DEMO` | `true` to create the demo accounts when the database is empty. |
 
 Leave `VITE_API_BASE` unset. The site calls `/api/v1` on the same address, and routes such as `/login` and `/book` fall back to the React app.
 
 Local `fastapi dev` still uses `backend/sitneat.db` until `DATABASE_URL` is set. A Postgres URL is used as given.
------------------------------------------------------------------------------------------------------------------------------------------

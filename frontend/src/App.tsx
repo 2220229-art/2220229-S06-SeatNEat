@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 import { homePath, RequireAuth, useAuth } from "./auth"
 import { Layout } from "./components/Layout"
+import { AdminPage } from "./pages/AdminPage"
 import { BookPage } from "./pages/BookPage"
+import { GroupsPage } from "./pages/GroupsPage"
 import { LandingPage } from "./pages/LandingPage"
 import { LoginPage } from "./pages/LoginPage"
 import { ManagerPage } from "./pages/ManagerPage"
@@ -61,6 +63,22 @@ export default function App() {
           element={
             <RequireAuth>
               <ProfilePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/groups"
+          element={
+            <RequireAuth>
+              <GroupsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth roles={["manager"]}>
+              <AdminPage />
             </RequireAuth>
           }
         />

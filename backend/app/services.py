@@ -44,6 +44,7 @@ def user_public(user: User) -> UserPublic:
         full_name=user.full_name,
         email=user.email,
         role=Role(user.role),
+        account_role=user.account_role or "user",
         is_active=user.is_active,
     )
 
@@ -87,6 +88,7 @@ def reservation_read(session: Session, reservation: Reservation) -> ReservationR
         allergy_declaration=reservation.allergy_declaration,
         allergy_details=reservation.allergy_details,
         status=ReservationStatus(reservation.status),
+        group_id=reservation.group_id,
     )
 
 
@@ -99,13 +101,25 @@ def get_settings_row(session: Session) -> RestaurantSettings:
     return row
 
 
-def audit(session: Session, actor_id: int, action: str, target_type: str, target_id: int | None) -> None:
+def audit(
+    session: Session,
+    actor_id: int | None,
+    action: str,
+    target_type: str,
+    target_id: int | None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+    detail: str | None = None,
+) -> None:
     session.add(
         AuditLog(
             actor_id=actor_id,
             action=action,
             target_type=target_type,
             target_id=target_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            detail=detail,
         )
     )
 
@@ -287,6 +301,7 @@ def create_reservation(session: Session, user: User, data: ReservationBody) -> R
         allergy_declaration=data.allergy_declaration.value,
         allergy_details=data.allergy_details,
         status=ReservationStatus.confirmed.value,
+        group_id=data.group_id,
     )
     session.add(reservation)
     _commit(session)
