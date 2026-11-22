@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import CheckConstraint, DateTime
+from sqlalchemy import CheckConstraint, DateTime, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 from app.timeutil import utc_now
@@ -11,6 +11,11 @@ class Role(str, Enum):
     customer = "customer"
     staff = "staff"
     manager = "manager"
+
+
+class AccountRole(str, Enum):
+    user = "user"
+    admin = "admin"
 
 
 class ReservationStatus(str, Enum):
@@ -41,7 +46,12 @@ class User(SQLModel, table=True):
     email: str = Field(unique=True, index=True)
     password_hash: str
     role: str = Field(index=True)
+    account_role: str = Field(default=AccountRole.user.value, index=True)
     is_active: bool = True
+    failed_attempts: int = 0
+    locked_until: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    banned_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    ban_reason: str | None = None
     created_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
     updated_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
 
@@ -90,6 +100,7 @@ class Reservation(SQLModel, table=True):
     allergy_declaration: str
     allergy_details: str | None = None
     status: str = Field(default=ReservationStatus.confirmed.value, index=True)
+    group_id: int | None = Field(default=None, foreign_key="dining_groups.id", index=True)
     created_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
     updated_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
 
@@ -113,8 +124,47 @@ class AuditLog(SQLModel, table=True):
     __tablename__ = "audit_logs"
 
     id: int | None = Field(default=None, primary_key=True)
-    actor_id: int = Field(foreign_key="users.id", index=True)
+    actor_id: int | None = Field(default=None, foreign_key="users.id", index=True)
     action: str
     target_type: str
     target_id: int | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    detail: str | None = None
+    created_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
+
+
+class RefreshSession(SQLModel, table=True):
+    __tablename__ = "refresh_sessions"
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    token_hash: str = Field(unique=True, index=True)
+    expires_at: datetime = Field(sa_type=DateTime(timezone=True))
+    revoked_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    replaced_by_id: int | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    created_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
+
+
+class DiningGroup(SQLModel, table=True):
+    __tablename__ = "dining_groups"
+
+    id: int | None = Field(default=None, primary_key=True)
+    name: str
+    owner_id: int = Field(foreign_key="users.id", index=True)
+    created_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
+
+
+class GroupMember(SQLModel, table=True):
+    __tablename__ = "group_members"
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_member"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    group_id: int = Field(foreign_key="dining_groups.id", index=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    can_create: bool = False
+    can_update: bool = False
+    can_assign: bool = False
     created_at: datetime = Field(default_factory=utc_now, sa_type=DateTime(timezone=True))
