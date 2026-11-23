@@ -87,7 +87,7 @@ Passwords and test account emails are not in this table. They belong in the PDF 
 | Vercel frontend | https://2220229-s06-seatneat.vercel.app |
 | API on that site | https://2220229-s06-seatneat.vercel.app/api/v1/health |
 | API docs on that site | https://2220229-s06-seatneat.vercel.app/api/docs |
-| Video demo | Not recorded |
+| Video demo | https://youtu.be/gNLn5eacVjA?si=FzXD2C0mnWgUHcmQ |
 
 The health and docs URLs above belong to the mid-term deployment. They show the new admin and group routes only after the project is deployed again.
 
